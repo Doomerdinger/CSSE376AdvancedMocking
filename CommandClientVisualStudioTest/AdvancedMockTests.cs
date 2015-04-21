@@ -65,7 +65,29 @@ namespace CommandClientVisualStudioTest
         [TestMethod]
         public void TestUserExitCommandWithoutMocks()
         {
-            Assert.Fail("Not yet implemented");
+            Console.WriteLine("HELLO");
+            IPAddress ipaddress = IPAddress.Parse("127.0.0.1");
+            Command command = new Command(CommandType.UserExit, ipaddress, null);
+            MemoryStream fakeStream = new MemoryStream(23);
+            byte[] commandBytes = { 0, 0, 0, 0 };
+            byte[] ipLength = { 9, 0, 0, 0 };
+            byte[] ip = { 49, 50, 55, 46, 48, 46, 48, 46, 49 };
+            byte[] metaDataLength = { 2, 0, 0, 0 };
+            byte[] metaData = { 10, 0 };
+
+            CMDClient client = new CMDClient(null, "Bogus network name");
+            typeof(CMDClient).GetField("networkStream", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(client, fakeStream);
+            // we need to set the private variable here
+            client.SendCommandToServerUnthreaded(command);
+            //byte[] writtenData = fakeStream.ToArray();
+            //fakeStream.Position = 0;
+            //string str = new StreamReader(fakeStream).ReadToEnd();
+            string data = System.Text.Encoding.Default.GetString(fakeStream.ToArray());
+            Assert.IsTrue(data.Contains(System.Text.Encoding.Default.GetString(commandBytes)));
+            Assert.IsTrue(data.Contains(System.Text.Encoding.Default.GetString(ipLength)));
+            Assert.IsTrue(data.Contains(System.Text.Encoding.Default.GetString(ip)));
+            Assert.IsTrue(data.Contains(System.Text.Encoding.Default.GetString(metaDataLength)));
+            Assert.IsTrue(data.Contains(System.Text.Encoding.Default.GetString(metaData)));
         }
 
         [TestMethod]
