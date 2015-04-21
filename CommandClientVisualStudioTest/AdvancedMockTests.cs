@@ -93,7 +93,22 @@ namespace CommandClientVisualStudioTest
         [TestMethod]
         public void TestSemaphoreReleaseOnNormalOperation()
         {
-            Assert.Fail("Not yet implemented");
+            System.IO.Stream fakeStream = mocks.DynamicMock<System.IO.Stream>();
+            System.Threading.Semaphore fakePhore = null;
+            fakePhore = mocks.DynamicMock<System.Threading.Semaphore>();
+
+            using (mocks.Ordered())
+            {
+                Expect.Call(fakePhore.WaitOne()).Return(true);
+                Expect.Call(fakePhore.Release()).Return(1);
+            }
+            mocks.ReplayAll();
+            CMDClient client = new CMDClient(null, "Bogus network name");
+            typeof(CMDClient).GetField("networkStream", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(client, fakeStream);
+            typeof(CMDClient).GetField("semaphore", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(client, fakePhore);
+
+            client.SendCommandToServerUnthreaded(new Command(CommandType.UserExit, IPAddress.Parse("127.0.0.1"), null));
+            mocks.VerifyAll();
         }
 
         [TestMethod]
