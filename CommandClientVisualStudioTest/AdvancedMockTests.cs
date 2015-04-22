@@ -77,12 +77,9 @@ namespace CommandClientVisualStudioTest
 
             CMDClient client = new CMDClient(null, "Bogus network name");
             typeof(CMDClient).GetField("networkStream", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(client, fakeStream);
-            // we need to set the private variable here
             client.SendCommandToServerUnthreaded(command);
-            //byte[] writtenData = fakeStream.ToArray();
-            //fakeStream.Position = 0;
-            //string str = new StreamReader(fakeStream).ReadToEnd();
             string data = System.Text.Encoding.Default.GetString(fakeStream.ToArray());
+            Assert.IsTrue(data.Length.Equals(commandBytes.Length + ipLength.Length + ip.Length + metaDataLength.Length + metaData.Length));
             Assert.IsTrue(data.Contains(System.Text.Encoding.Default.GetString(commandBytes)));
             Assert.IsTrue(data.Contains(System.Text.Encoding.Default.GetString(ipLength)));
             Assert.IsTrue(data.Contains(System.Text.Encoding.Default.GetString(ip)));
@@ -114,8 +111,28 @@ namespace CommandClientVisualStudioTest
         [TestMethod]
         public void TestSemaphoreReleaseOnExceptionalOperation()
         {
-            Assert.Fail("Not yet implemented");
+            System.IO.Stream fakeStream = mocks.DynamicMock<System.IO.Stream>();
+            System.Threading.Semaphore fakePhore = null;
+            fakePhore = mocks.DynamicMock<System.Threading.Semaphore>();
 
+            using (mocks.Ordered())
+            {
+                Expect.Call(fakePhore.WaitOne()).Return(true);
+                fakeStream.Flush();
+                Expect.Call(fakePhore.Release()).Return(1);
+                LastCall.On(fakeStream).Throw(new ArgumentException(""));
+            }
+            mocks.ReplayAll();
+            CMDClient client = new CMDClient(null, "Bogus network name");
+            typeof(CMDClient).GetField("networkStream", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(client, fakeStream);
+            typeof(CMDClient).GetField("semaphore", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(client, fakePhore);
+
+            try
+            {
+                client.SendCommandToServerUnthreaded(new Command(CommandType.UserExit, IPAddress.Parse("127.0.0.1"), null));
+            } 
+            catch { }
+            mocks.VerifyAll();
         }
     }
 }
